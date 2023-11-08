@@ -51,13 +51,21 @@ app.get('/api/user_table', function (req, res, next) {
 
 // ? User Data
 
-app.post('/editUser/:userId' ,(request ,response) => {
-    const user_id = request.params.userId;
+app.post('/editUser',upload.single('image') ,(request ,response) => {
+    const user_id = user_session;
     const { email, password, name } = request.body
-    connection.query("UPDATE user SET email =?, password =?, name =? WHERE id =?", [email, password, name, user_id], (error, results, fields) => {
-        if (error) throw error
-        response.status(200).json(results)
-    })
+    const image = request.file.originalname
+    if (image.length == 0 || image == null || image == undefined) {
+        connection.query("UPDATE user SET email =?, password =?, name =? WHERE id =?", [email, password, name, user_id], (error, results, fields) => {
+            if (error) throw error
+            response.status(200).json(results)
+        })
+    } else {
+        connection.query("UPDATE user SET email =?, password =?, name =? ,photoURL=? WHERE id =?", [email, password, name , image, user_id], (error, results, fields) => {
+            if (error) throw error
+            response.status(200).json(results)
+        })
+    }
 })
 
 
@@ -84,7 +92,6 @@ app.post('/createPost' ,upload.single('image') ,(req ,res) => {
     const user_id = user_session;
     const post_title = req.body.title;
     const image = req.file.originalname
-
     connection.query('INSERT INTO `post`(`user_id`, `post_title`, `post_img`, `post_date`) VALUES (? ,? ,? ,NOW())',[user_id, post_title, image], (error, results) => {
         if (error) throw error
         res.status(200).json(results)
@@ -95,7 +102,6 @@ app.post('/editPost' ,upload.single('image') ,(req ,res) => {
     const post_id = req.body.id;
     const post_title = req.body.title;
     const image = req.file.originalname;
-
     if (image.length == 0 || image == null || image == undefined) {
         connection.query("UPDATE post SET post_title =? WHERE post_id =?", [post_title, post_id], (error, results, fields) => {
             if (error) throw error
@@ -107,7 +113,6 @@ app.post('/editPost' ,upload.single('image') ,(req ,res) => {
             res.status(200).json(results)
         })
     }
-
 })
 
 app.get('/getPost', (request, response) => {//:user_id
@@ -117,6 +122,16 @@ app.get('/getPost', (request, response) => {//:user_id
     connection.query("SELECT post.*, user.photoURL, user.name FROM post INNER JOIN user ON post.user_id = user.id", [user_id], (error, results, fields) => {
         if (error) throw error
         response.status(200).json(results)
+    })
+})
+
+app.post('/deletePost', (request, response) => {
+    const post_id = request.body.id;
+    connection.query("DELETE FROM post WHERE post_id =?", [post_id], (error, results, fields) => {
+        if (error) throw error
+        response.status(200).json({
+            message: 'Post deleted successfully'
+        })
     })
 })
 
